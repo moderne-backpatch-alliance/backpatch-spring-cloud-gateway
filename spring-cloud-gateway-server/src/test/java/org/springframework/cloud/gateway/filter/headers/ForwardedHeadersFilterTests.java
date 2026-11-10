@@ -271,6 +271,20 @@ public class ForwardedHeadersFilterTests {
 	}
 
 	@Test
+	public void forwardedWithoutForFromTrustedProxyIsDropped() throws UnknownHostException {
+		MockServerHttpRequest request = MockServerHttpRequest.get("http://localhost/get")
+				.remoteAddress(new InetSocketAddress(InetAddress.getByName("10.0.0.1"), 80))
+				.header(HttpHeaders.HOST, "myhost").header(FORWARDED_HEADER, "proto=https").build();
+
+		ForwardedHeadersFilter filter = new ForwardedHeadersFilter("10\\.0\\.0\\..*");
+
+		HttpHeaders headers = filter.filter(request.getHeaders(), MockServerWebExchange.from(request));
+
+		assertThat(headers.get(FORWARDED_HEADER)).hasSize(1);
+		assertThat(headers.getFirst(FORWARDED_HEADER)).contains("for=").doesNotContain("proto=https");
+	}
+
+	@Test
 	public void remoteAdddressIsNullUnTrustedProxyNotAppended() throws Exception {
 		MockServerHttpRequest request = MockServerHttpRequest.get("http://localhost:8080/get")
 				.header(HttpHeaders.HOST, "myhost").header(FORWARDED_HEADER, "proto=http;host=myhost;for=127.0.0.1")

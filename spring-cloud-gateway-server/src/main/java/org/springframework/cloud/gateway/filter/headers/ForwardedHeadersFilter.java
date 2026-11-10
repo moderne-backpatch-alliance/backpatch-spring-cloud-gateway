@@ -139,7 +139,8 @@ public class ForwardedHeadersFilter implements HttpHeadersFilter, Ordered {
 
 		for (Forwarded f : forwardeds) {
 			// only add if "for" value matches trustedProxies
-			if (trustedProxies.isTrusted(f.get("for"))) {
+			String forValue = f.get("for");
+			if (forValue != null && trustedProxies.isTrusted(forValue)) {
 				updated.add(FORWARDED_HEADER, f.toHeaderValue());
 			}
 		}
