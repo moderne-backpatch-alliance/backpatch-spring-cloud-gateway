@@ -38,6 +38,8 @@ import org.springframework.boot.test.context.runner.ReactiveWebApplicationContex
 import org.springframework.cloud.gateway.actuate.GatewayControllerEndpoint;
 import org.springframework.cloud.gateway.actuate.GatewayLegacyControllerEndpoint;
 import org.springframework.cloud.gateway.filter.factory.TokenRelayGatewayFilterFactory;
+import org.springframework.cloud.gateway.filter.headers.ForwardedHeadersFilter;
+import org.springframework.cloud.gateway.filter.headers.XForwardedHeadersFilter;
 import org.springframework.cloud.gateway.route.RouteLocator;
 import org.springframework.cloud.gateway.route.builder.GatewayFilterSpec;
 import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
@@ -228,6 +230,30 @@ public class GatewayAutoConfigurationTests {
 		assertThat(spec1.protocols()).isEqualTo("p1");
 		// Protocols should not be cached between requests:
 		assertThat(spec2.protocols()).isNull();
+	}
+
+	@Test
+	public void forwardedHeaderFiltersNotEnabledByDefault() {
+		new ReactiveWebApplicationContextRunner()
+				.withConfiguration(AutoConfigurations.of(WebFluxAutoConfiguration.class, MetricsAutoConfiguration.class,
+						SimpleMetricsExportAutoConfiguration.class, GatewayAutoConfiguration.class))
+				.run(context -> {
+					assertThat(context).doesNotHaveBean(XForwardedHeadersFilter.class)
+							.doesNotHaveBean(ForwardedHeadersFilter.class);
+				});
+	}
+
+	@Test
+	public void forwardedHeaderFiltersEnabledWithProperties() {
+		new ReactiveWebApplicationContextRunner()
+				.withConfiguration(AutoConfigurations.of(WebFluxAutoConfiguration.class, MetricsAutoConfiguration.class,
+						SimpleMetricsExportAutoConfiguration.class, GatewayAutoConfiguration.class))
+				.withPropertyValues("spring.cloud.gateway.forwarded.enabled=true",
+						"spring.cloud.gateway.x-forwarded.enabled=true", "spring.cloud.gateway.trusted-proxies=.*")
+				.run(context -> {
+					assertThat(context).hasSingleBean(XForwardedHeadersFilter.class)
+							.hasSingleBean(ForwardedHeadersFilter.class);
+				});
 	}
 
 	@EnableAutoConfiguration
