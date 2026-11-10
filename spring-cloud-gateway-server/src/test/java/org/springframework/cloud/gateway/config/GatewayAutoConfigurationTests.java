@@ -18,6 +18,8 @@ package org.springframework.cloud.gateway.config;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.Test;
@@ -46,6 +48,9 @@ import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpHeaders;
+import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
+import org.springframework.mock.web.server.MockServerWebExchange;
 import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientManager;
 import org.springframework.web.filter.reactive.HiddenHttpMethodFilter;
 import org.springframework.web.reactive.socket.client.ReactorNettyWebSocketClient;
@@ -241,6 +246,24 @@ public class GatewayAutoConfigurationTests {
 					assertThat(context).doesNotHaveBean(XForwardedHeadersFilter.class)
 							.doesNotHaveBean(ForwardedHeadersFilter.class);
 				});
+	}
+
+	@Test
+	@SuppressWarnings("deprecation")
+	public void deprecatedForwardedHeaderFilterMethodsTrustNoProxy() throws Exception {
+		MockServerHttpRequest request = MockServerHttpRequest.get("http://localhost/get")
+				.remoteAddress(new InetSocketAddress(InetAddress.getByName("10.0.0.1"), 80))
+				.header(HttpHeaders.HOST, "myhost").header(ForwardedHeadersFilter.FORWARDED_HEADER, "for=127.0.0.1")
+				.header(XForwardedHeadersFilter.X_FORWARDED_FOR_HEADER, "127.0.0.1").build();
+		GatewayAutoConfiguration configuration = new GatewayAutoConfiguration();
+
+		HttpHeaders forwarded = configuration.forwardedHeadersFilter().filter(request.getHeaders(),
+				MockServerWebExchange.from(request));
+		HttpHeaders xForwarded = configuration.xForwardedHeadersFilter().filter(request.getHeaders(),
+				MockServerWebExchange.from(request));
+
+		assertThat(forwarded.get(ForwardedHeadersFilter.FORWARDED_HEADER)).containsExactly("for=127.0.0.1");
+		assertThat(xForwarded.get(XForwardedHeadersFilter.X_FORWARDED_FOR_HEADER)).containsExactly("127.0.0.1");
 	}
 
 	@Test

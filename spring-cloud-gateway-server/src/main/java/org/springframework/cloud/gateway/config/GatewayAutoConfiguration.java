@@ -186,6 +186,10 @@ import static org.springframework.cloud.gateway.config.HttpClientProperties.Pool
 @ConditionalOnClass(DispatcherHandler.class)
 public class GatewayAutoConfiguration {
 
+	// Matches no host. A default GatewayProperties has no trusted-proxies, which
+	// TrustedProxies refuses.
+	private static final String NO_TRUSTED_PROXIES = "(?!)";
+
 	@Bean
 	public StringToZonedDateTimeConverter stringToZonedDateTimeConverter() {
 		return new StringToZonedDateTimeConverter();
@@ -278,6 +282,11 @@ public class GatewayAutoConfiguration {
 		return new ForwardedHeadersFilter(properties.getTrustedProxies());
 	}
 
+	@Deprecated
+	public ForwardedHeadersFilter forwardedHeadersFilter() {
+		return new ForwardedHeadersFilter(NO_TRUSTED_PROXIES);
+	}
+
 	// HttpHeaderFilter beans
 
 	@Bean
@@ -289,6 +298,11 @@ public class GatewayAutoConfiguration {
 	@Conditional(TrustedProxies.XForwardedTrustedProxiesCondition.class)
 	public XForwardedHeadersFilter xForwardedHeadersFilter(GatewayProperties properties) {
 		return new XForwardedHeadersFilter(properties.getTrustedProxies());
+	}
+
+	@Deprecated
+	public XForwardedHeadersFilter xForwardedHeadersFilter() {
+		return new XForwardedHeadersFilter(NO_TRUSTED_PROXIES);
 	}
 
 	@Bean
